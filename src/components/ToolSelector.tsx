@@ -1,6 +1,6 @@
-import { Calculator, AlertTriangle, GraduationCap } from "lucide-react";
+import { Calculator, CalendarCheck, GraduationCap } from "lucide-react";
 
-type Tool = "attendance" | "recovery" | "cgpa";
+type Tool = "attendance" | "planner" | "marks";
 
 interface ToolSelectorProps {
   activeTool: Tool;
@@ -15,15 +15,15 @@ const tools = [
     icon: Calculator,
   },
   {
-    id: "recovery" as Tool,
-    name: "Risk & Recovery",
+    id: "planner" as Tool,
+    name: "Attendance Planner",
     description: "Plan your attendance recovery",
-    icon: AlertTriangle,
+    icon: CalendarCheck,
   },
   {
-    id: "cgpa" as Tool,
-    name: "CGPA Calculator",
-    description: "Compute CGPA and percentage",
+    id: "marks" as Tool,
+    name: "Marks Calculator",
+    description: "Calculate overall percentage from marks",
     icon: GraduationCap,
   },
 ];
