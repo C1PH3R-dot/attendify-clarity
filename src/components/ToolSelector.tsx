@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Calculator, CalendarCheck, GraduationCap, Menu, X } from "lucide-react";
 
 type Tool = "attendance" | "planner" | "marks";
@@ -17,7 +17,7 @@ const tools = [
   },
   {
     id: "planner" as Tool,
-    name: "Attendance Planner",
+    name: "Attendance Plan",
     description: "Plan your attendance recovery",
     icon: CalendarCheck,
   },
@@ -31,23 +31,16 @@ const tools = [
 
 const ToolSelector = ({ activeTool, onToolChange }: ToolSelectorProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
-  const activeToolData = tools.find(t => t.id === activeTool) || tools[0];
-
-  // Close menu when clicking outside
+  // Lock body scroll when menu is open
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-
     if (isMobileMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.body.style.overflow = "unset";
     };
   }, [isMobileMenuOpen]);
 
@@ -57,9 +50,21 @@ const ToolSelector = ({ activeTool, onToolChange }: ToolSelectorProps) => {
   };
 
   return (
-    <div className="mb-8 relative z-40">
+    <>
+      {/* Mobile Hamburger Button - Fixed Top Left */}
+      <button
+        onClick={() => setIsMobileMenuOpen(true)}
+        className="md:hidden fixed top-4 left-4 z-50 p-3 rounded-full glass shadow-lg hover:bg-muted/50 transition-colors"
+        aria-label="Open navigation menu"
+      >
+        <Menu className="w-6 h-6 text-foreground" />
+      </button>
+
+      {/* spacer for mobile to push content down since header might overlap or just for visual spacing */}
+      <div className="md:hidden h-4" />
+
       {/* Desktop Grid View */}
-      <div className="hidden md:grid md:grid-cols-3 gap-4 animate-fade-in" style={{ animationDelay: "0.1s" }}>
+      <div className="hidden md:grid md:grid-cols-3 gap-4 mb-8 animate-fade-in" style={{ animationDelay: "0.1s" }}>
         {tools.map((tool) => {
           const Icon = tool.icon;
           const isActive = activeTool === tool.id;
@@ -92,77 +97,70 @@ const ToolSelector = ({ activeTool, onToolChange }: ToolSelectorProps) => {
         })}
       </div>
 
-      {/* Mobile Hamburger View */}
-      <div className="md:hidden">
-        <div className="flex items-center justify-between p-4 glass rounded-xl">
-          <div className="flex items-center gap-3">
-            <div className={`
-              w-10 h-10 rounded-lg flex items-center justify-center
-              bg-primary text-primary-foreground
-            `}>
-              <activeToolData.icon className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-semibold font-display text-foreground">
-                {activeToolData.name}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Tap menu to switch tools
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
-            aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-6 h-6 text-foreground" />
-            ) : (
-              <Menu className="w-6 h-6 text-foreground" />
-            )}
-          </button>
-        </div>
-
-        {/* Mobile Dropdown Menu */}
-        {isMobileMenuOpen && (
+      {/* Mobile Side Drawer & Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[60] md:hidden">
+          {/* Backdrop Blur Overlay */}
           <div
-            ref={menuRef}
-            className="absolute top-full left-0 right-0 mt-2 glass-strong rounded-xl overflow-hidden shadow-xl animate-in fade-in slide-in-from-top-2 z-50"
-          >
-            {tools.map((tool) => {
-              const Icon = tool.icon;
-              const isActive = activeTool === tool.id;
+            className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-200"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
 
-              return (
+          {/* Drawer Menu */}
+          <div className="absolute top-0 bottom-0 left-0 w-[80%] max-w-sm bg-background/95 glass-strong shadow-2xl border-r border-border animate-in slide-in-from-left duration-300">
+            <div className="p-6 flex flex-col h-full">
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-bold font-display text-foreground">Menu</h2>
                 <button
-                  key={tool.id}
-                  onClick={() => handleToolClick(tool.id)}
-                  className={`
-                    w-full flex items-center gap-3 p-4 text-left transition-colors
-                    border-b border-border/50 last:border-none
-                    ${isActive ? "bg-primary/10" : "hover:bg-muted/50"}
-                  `}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-2 rounded-full hover:bg-muted/50 transition-colors"
+                  aria-label="Close menu"
                 >
-                  <div className={`
-                    w-8 h-8 rounded-md flex items-center justify-center
-                    ${isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}
-                  `}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className={`font-semibold text-sm ${isActive ? "text-primary" : "text-foreground"}`}>
-                      {tool.name}
-                    </h3>
-                  </div>
+                  <X className="w-6 h-6 text-foreground" />
                 </button>
-              );
-            })}
+              </div>
+
+              <div className="space-y-4 flex-1">
+                {tools.map((tool) => {
+                  const Icon = tool.icon;
+                  const isActive = activeTool === tool.id;
+
+                  return (
+                    <button
+                      key={tool.id}
+                      onClick={() => handleToolClick(tool.id)}
+                      className={`
+                        w-full flex items-center gap-4 p-4 rounded-xl text-left transition-all
+                        ${isActive
+                          ? "bg-primary/10 text-primary ring-1 ring-primary/20"
+                          : "hover:bg-muted/50 text-foreground"
+                        }
+                      `}
+                    >
+                      <div className={`
+                        w-10 h-10 rounded-lg flex items-center justify-center
+                        ${isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}
+                      `}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">{tool.name}</h3>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="pt-6 border-t border-border">
+                <p className="text-xs text-center text-muted-foreground">
+                  Attendify © {new Date().getFullYear()}
+                </p>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </>
   );
 };
 
