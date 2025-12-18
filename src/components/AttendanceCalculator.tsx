@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle2, AlertTriangle, XCircle, TrendingUp, TrendingDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, AlertTriangle, XCircle, TrendingUp, TrendingDown, RotateCcw } from "lucide-react";
+import useLocalStorage from "@/hooks/useLocalStorage";
 
 interface AttendanceResult {
   percentage: number;
@@ -12,10 +14,14 @@ interface AttendanceResult {
 }
 
 const AttendanceCalculator = () => {
-  const [totalClasses, setTotalClasses] = useState<string>("");
-  const [attendedClasses, setAttendedClasses] = useState<string>("");
-  const [requiredPercentage, setRequiredPercentage] = useState<string>("75");
-  const [result, setResult] = useState<AttendanceResult | null>(null);
+  const [data, setData, resetData] = useLocalStorage("attendify_attendance_calc", {
+    totalClasses: "",
+    attendedClasses: "",
+    requiredPercentage: "75",
+    result: null as AttendanceResult | null,
+  });
+
+  const { totalClasses, attendedClasses, requiredPercentage, result } = data;
 
   useEffect(() => {
     const total = parseInt(totalClasses) || 0;
@@ -23,12 +29,12 @@ const AttendanceCalculator = () => {
     const required = parseFloat(requiredPercentage) || 75;
 
     if (total <= 0 || attended < 0) {
-      setResult(null);
+      if (result !== null) setData((prev) => ({ ...prev, result: null }));
       return;
     }
 
     if (attended > total) {
-      setResult(null);
+      if (result !== null) setData((prev) => ({ ...prev, result: null }));
       return;
     }
 
@@ -43,13 +49,9 @@ const AttendanceCalculator = () => {
     if (percentage >= required) {
       status = "safe";
       // Calculate how many more classes can be skipped
-      // (attended) / (total + x) >= required/100
-      // attended * 100 >= required * (total + x)
-      // attended * 100 / required >= total + x
-      // x <= (attended * 100 / required) - total
       const maxTotal = Math.floor((attended * 100) / required);
       canSkip = maxTotal - total;
-      
+
       if (canSkip > 0) {
         message = `You can safely skip up to ${canSkip} more class${canSkip > 1 ? "es" : ""} while maintaining ${required}% attendance.`;
       } else {
@@ -58,14 +60,8 @@ const AttendanceCalculator = () => {
     } else if (percentage >= required - 10) {
       status = "at-risk";
       // Calculate classes needed to recover
-      // (attended + x) / (total + x) >= required/100
-      // (attended + x) * 100 >= required * (total + x)
-      // 100*attended + 100*x >= required*total + required*x
-      // 100*x - required*x >= required*total - 100*attended
-      // x * (100 - required) >= required*total - 100*attended
-      // x >= (required*total - 100*attended) / (100 - required)
       needToAttend = Math.ceil((required * total - 100 * attended) / (100 - required));
-      
+
       if (needToAttend > 0 && needToAttend < 1000) {
         message = `You need to attend ${needToAttend} consecutive class${needToAttend > 1 ? "es" : ""} without missing any to reach ${required}% attendance.`;
       } else {
@@ -74,7 +70,7 @@ const AttendanceCalculator = () => {
     } else {
       status = "not-eligible";
       needToAttend = Math.ceil((required * total - 100 * attended) / (100 - required));
-      
+
       if (needToAttend > 0 && needToAttend < 1000) {
         message = `You need to attend ${needToAttend} consecutive classes to reach ${required}%. This may not be achievable this semester.`;
       } else {
@@ -82,14 +78,28 @@ const AttendanceCalculator = () => {
       }
     }
 
-    setResult({
+    // Only update if result has changed significantly to avoid loops
+    // But since we are calculating derived state inside useEffect that depends on inputs, 
+    // we need to be careful. Ideally we just compute this on render or store it.
+    // However, to keep it persisted as requested "results remain visible", we store it.
+
+    // Check if result is different to avoid infinite loop
+    const newResult = {
       percentage,
       status,
       message,
       canSkip,
       needToAttend,
-    });
-  }, [totalClasses, attendedClasses, requiredPercentage]);
+    };
+
+    if (JSON.stringify(result) !== JSON.stringify(newResult)) {
+      setData((prev) => ({ ...prev, result: newResult }));
+    }
+  }, [totalClasses, attendedClasses, requiredPercentage, result, setData]);
+
+  const updateField = (field: keyof typeof data, value: string) => {
+    setData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const getStatusIcon = () => {
     if (!result) return null;
@@ -128,10 +138,22 @@ const AttendanceCalculator = () => {
   };
 
   return (
-    <div className="glass-strong rounded-2xl p-6 md:p-8 animate-fade-in">
-      <h2 className="text-xl font-semibold font-display mb-6 text-foreground">
-        Attendance Calculator
-      </h2>
+    <div className="glass-strong rounded-2xl p-6 md:p-8 animate-fade-in relative group">
+      <div className="flex justify-between items-start mb-6">
+        <h2 className="text-xl font-semibold font-display text-foreground">
+          Attendance Calculator
+        </h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={resetData}
+          className="text-muted-foreground hover:text-foreground opacity-50 group-hover:opacity-100 transition-opacity"
+          title="Reset Calculator"
+        >
+          <RotateCcw className="w-4 h-4 mr-2" />
+          Reset
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="space-y-2">
@@ -144,7 +166,7 @@ const AttendanceCalculator = () => {
             min="0"
             placeholder="e.g., 50"
             value={totalClasses}
-            onChange={(e) => setTotalClasses(e.target.value)}
+            onChange={(e) => updateField("totalClasses", e.target.value)}
             className="bg-background/50"
           />
         </div>
@@ -159,7 +181,7 @@ const AttendanceCalculator = () => {
             min="0"
             placeholder="e.g., 40"
             value={attendedClasses}
-            onChange={(e) => setAttendedClasses(e.target.value)}
+            onChange={(e) => updateField("attendedClasses", e.target.value)}
             className="bg-background/50"
           />
         </div>
@@ -175,7 +197,7 @@ const AttendanceCalculator = () => {
             max="100"
             placeholder="e.g., 75"
             value={requiredPercentage}
-            onChange={(e) => setRequiredPercentage(e.target.value)}
+            onChange={(e) => updateField("requiredPercentage", e.target.value)}
             className="bg-background/50"
           />
         </div>

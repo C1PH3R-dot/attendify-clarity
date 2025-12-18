@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Calculator, Award } from "lucide-react";
+import { Plus, Trash2, Calculator, Award, RotateCcw } from "lucide-react";
+import useLocalStorage from "@/hooks/useLocalStorage";
 
 interface Subject {
   id: string;
@@ -12,26 +13,26 @@ interface Subject {
 }
 
 const MarksCalculator = () => {
-  const [subjects, setSubjects] = useState<Subject[]>([
+  const [subjects, setSubjects, resetSubjects] = useLocalStorage<Subject[]>("attendify_marks_calc", [
     { id: "1", name: "", totalMarks: "", obtainedMarks: "" },
   ]);
 
   const addSubject = () => {
-    setSubjects([
-      ...subjects,
+    setSubjects((prev) => [
+      ...prev,
       { id: Date.now().toString(), name: "", totalMarks: "", obtainedMarks: "" },
     ]);
   };
 
   const removeSubject = (id: string) => {
     if (subjects.length > 1) {
-      setSubjects(subjects.filter((s) => s.id !== id));
+      setSubjects((prev) => prev.filter((s) => s.id !== id));
     }
   };
 
   const updateSubject = (id: string, field: keyof Subject, value: string) => {
-    setSubjects(
-      subjects.map((s) => (s.id === id ? { ...s, [field]: value } : s))
+    setSubjects((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
     );
   };
 
@@ -46,10 +47,10 @@ const MarksCalculator = () => {
 
       // Validate: both must be valid numbers, obtained <= total, both >= 0
       if (
-        !isNaN(total) && 
-        !isNaN(obtained) && 
-        total > 0 && 
-        obtained >= 0 && 
+        !isNaN(total) &&
+        !isNaN(obtained) &&
+        total > 0 &&
+        obtained >= 0 &&
         obtained <= total
       ) {
         totalMaxMarks += total;
@@ -90,10 +91,22 @@ const MarksCalculator = () => {
   };
 
   return (
-    <div className="glass-strong rounded-2xl p-6 md:p-8 animate-fade-in">
-      <h2 className="text-xl font-semibold font-display mb-6 text-foreground">
-        Marks Calculator
-      </h2>
+    <div className="glass-strong rounded-2xl p-6 md:p-8 animate-fade-in relative group">
+      <div className="flex justify-between items-start mb-6">
+        <h2 className="text-xl font-semibold font-display text-foreground">
+          Marks Calculator
+        </h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={resetSubjects}
+          className="text-muted-foreground hover:text-foreground opacity-50 group-hover:opacity-100 transition-opacity"
+          title="Reset Calculator"
+        >
+          <RotateCcw className="w-4 h-4 mr-2" />
+          Reset
+        </Button>
+      </div>
 
       <div className="space-y-4 mb-6">
         {subjects.map((subject, index) => {

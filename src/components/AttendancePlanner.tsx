@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Shield, AlertTriangle, AlertOctagon, Calendar, User, BookOpen, Upload, X, FileText } from "lucide-react";
+import { Shield, AlertTriangle, AlertOctagon, Calendar, User, BookOpen, Upload, X, FileText, RotateCcw } from "lucide-react";
+import useLocalStorage from "@/hooks/useLocalStorage";
 
 interface RecoveryResult {
   percentage: number;
@@ -14,18 +15,32 @@ interface RecoveryResult {
 }
 
 const AttendancePlanner = () => {
-  const [studentName, setStudentName] = useState("");
-  const [subjectName, setSubjectName] = useState("");
-  const [credits, setCredits] = useState<string>("");
-  const [hoursPerWeek, setHoursPerWeek] = useState<string>("");
-  const [minutesPerWeek, setMinutesPerWeek] = useState<string>("");
-  const [totalClasses, setTotalClasses] = useState<string>("");
-  const [attendedClasses, setAttendedClasses] = useState<string>("");
-  const [requiredPercentage, setRequiredPercentage] = useState<string>("75");
-  const [missReason, setMissReason] = useState("");
+  const [data, setData, resetData] = useLocalStorage("attendify_attendance_planner", {
+    studentName: "",
+    subjectName: "",
+    credits: "",
+    hoursPerWeek: "",
+    minutesPerWeek: "",
+    totalClasses: "",
+    attendedClasses: "",
+    requiredPercentage: "75",
+    missReason: "",
+    timetableMetadata: null as { name: string; size: number } | null,
+    result: null as RecoveryResult | null,
+  });
+
+  const {
+    studentName, subjectName, credits, hoursPerWeek, minutesPerWeek,
+    totalClasses, attendedClasses, requiredPercentage, missReason,
+    timetableMetadata, result
+  } = data;
+
   const [timetableFile, setTimetableFile] = useState<File | null>(null);
-  const [result, setResult] = useState<RecoveryResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const updateField = (field: keyof typeof data, value: any) => {
+    setData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -33,6 +48,7 @@ const AttendancePlanner = () => {
       const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
       if (validTypes.includes(file.type)) {
         setTimetableFile(file);
+        updateField("timetableMetadata", { name: file.name, size: file.size });
       } else {
         alert('Please upload a PDF or image file (PNG, JPG)');
       }
@@ -40,6 +56,15 @@ const AttendancePlanner = () => {
   };
 
   const removeTimetable = () => {
+    setTimetableFile(null);
+    updateField("timetableMetadata", null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleReset = () => {
+    resetData();
     setTimetableFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -54,12 +79,12 @@ const AttendancePlanner = () => {
     const minutes = parseInt(minutesPerWeek) || 0;
 
     if (total <= 0 || attended < 0) {
-      setResult(null);
+      if (result !== null) updateField("result", null);
       return;
     }
 
     if (attended > total) {
-      setResult(null);
+      if (result !== null) updateField("result", null);
       return;
     }
 
@@ -69,9 +94,8 @@ const AttendancePlanner = () => {
     const classesPerWeek = totalMinutesPerWeek > 0 ? totalMinutesPerWeek / 50 : 0;
 
     const percentage = (attended / total) * 100;
-    
+
     // Calculate classes needed for recovery
-    // (attended + x) / (total + x) >= required/100
     let classesNeeded = 0;
     let isPossible = true;
 
@@ -81,7 +105,7 @@ const AttendancePlanner = () => {
         classesNeeded = Infinity;
       } else {
         classesNeeded = Math.ceil((required * total - 100 * attended) / (100 - required));
-        
+
         // Check if mathematically possible
         if (classesNeeded > 500) {
           isPossible = false;
@@ -110,7 +134,7 @@ const AttendancePlanner = () => {
     if (percentage >= required) {
       const maxTotal = Math.floor((attended * 100) / required);
       const canSkip = maxTotal - total;
-      recoveryPlan = canSkip > 0 
+      recoveryPlan = canSkip > 0
         ? `You're currently safe. You can skip up to ${canSkip} class${canSkip > 1 ? "es" : ""} and still maintain ${required}% attendance.`
         : `You're at exactly ${required}%. Attend all remaining classes to stay safe.`;
     } else if (isPossible) {
@@ -118,7 +142,7 @@ const AttendancePlanner = () => {
       if (weeksNeeded && totalMinutesPerWeek > 0) {
         const hoursDisplay = Math.floor(totalMinutesPerWeek / 60);
         const minsDisplay = totalMinutesPerWeek % 60;
-        const timeStr = hoursDisplay > 0 
+        const timeStr = hoursDisplay > 0
           ? `${hoursDisplay}h${minsDisplay > 0 ? ` ${minsDisplay}m` : ''}`
           : `${minsDisplay}m`;
         recoveryPlan += ` At ${timeStr}/week, this will take approximately ${weeksNeeded} week${weeksNeeded > 1 ? "s" : ""}.`;
@@ -127,15 +151,19 @@ const AttendancePlanner = () => {
       recoveryPlan = `Recovery to ${required}% is mathematically impossible with current attendance. The deficit is too large to overcome. Please consult your academic advisor for options.`;
     }
 
-    setResult({
+    const newResult = {
       percentage,
       riskLevel,
       recoveryPlan,
       classesNeeded: isPossible ? classesNeeded : 0,
       isPossible,
       weeksNeeded,
-    });
-  }, [totalClasses, attendedClasses, requiredPercentage, hoursPerWeek, minutesPerWeek]);
+    };
+
+    if (JSON.stringify(result) !== JSON.stringify(newResult)) {
+      updateField("result", newResult);
+    }
+  }, [totalClasses, attendedClasses, requiredPercentage, hoursPerWeek, minutesPerWeek, result, setData]);
 
   const getRiskIcon = () => {
     if (!result) return null;
@@ -174,10 +202,22 @@ const AttendancePlanner = () => {
   };
 
   return (
-    <div className="glass-strong rounded-2xl p-6 md:p-8 animate-fade-in">
-      <h2 className="text-xl font-semibold font-display mb-6 text-foreground">
-        Attendance Planner
-      </h2>
+    <div className="glass-strong rounded-2xl p-6 md:p-8 animate-fade-in relative group">
+      <div className="flex justify-between items-start mb-6">
+        <h2 className="text-xl font-semibold font-display text-foreground">
+          Attendance Planner
+        </h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleReset}
+          className="text-muted-foreground hover:text-foreground opacity-50 group-hover:opacity-100 transition-opacity"
+          title="Reset Planner"
+        >
+          <RotateCcw className="w-4 h-4 mr-2" />
+          Reset
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="space-y-2">
@@ -188,7 +228,7 @@ const AttendancePlanner = () => {
             id="studentName"
             placeholder="Your name"
             value={studentName}
-            onChange={(e) => setStudentName(e.target.value)}
+            onChange={(e) => updateField("studentName", e.target.value)}
             className="bg-background/50"
           />
         </div>
@@ -201,7 +241,7 @@ const AttendancePlanner = () => {
             id="subjectName"
             placeholder="e.g., Data Structures"
             value={subjectName}
-            onChange={(e) => setSubjectName(e.target.value)}
+            onChange={(e) => updateField("subjectName", e.target.value)}
             className="bg-background/50"
           />
         </div>
@@ -218,7 +258,7 @@ const AttendancePlanner = () => {
             min="0"
             placeholder="e.g., 4"
             value={credits}
-            onChange={(e) => setCredits(e.target.value)}
+            onChange={(e) => updateField("credits", e.target.value)}
             className="bg-background/50"
           />
         </div>
@@ -234,7 +274,7 @@ const AttendancePlanner = () => {
             max="168"
             placeholder="e.g., 3"
             value={hoursPerWeek}
-            onChange={(e) => setHoursPerWeek(e.target.value)}
+            onChange={(e) => updateField("hoursPerWeek", e.target.value)}
             className="bg-background/50"
           />
         </div>
@@ -250,7 +290,7 @@ const AttendancePlanner = () => {
             max="59"
             placeholder="e.g., 30"
             value={minutesPerWeek}
-            onChange={(e) => setMinutesPerWeek(e.target.value)}
+            onChange={(e) => updateField("minutesPerWeek", e.target.value)}
             className="bg-background/50"
           />
         </div>
@@ -265,7 +305,7 @@ const AttendancePlanner = () => {
             min="0"
             placeholder="e.g., 50"
             value={totalClasses}
-            onChange={(e) => setTotalClasses(e.target.value)}
+            onChange={(e) => updateField("totalClasses", e.target.value)}
             className="bg-background/50"
           />
         </div>
@@ -282,7 +322,7 @@ const AttendancePlanner = () => {
             min="0"
             placeholder="e.g., 30"
             value={attendedClasses}
-            onChange={(e) => setAttendedClasses(e.target.value)}
+            onChange={(e) => updateField("attendedClasses", e.target.value)}
             className="bg-background/50"
           />
         </div>
@@ -298,7 +338,7 @@ const AttendancePlanner = () => {
             max="100"
             placeholder="e.g., 75"
             value={requiredPercentage}
-            onChange={(e) => setRequiredPercentage(e.target.value)}
+            onChange={(e) => updateField("requiredPercentage", e.target.value)}
             className="bg-background/50"
           />
         </div>
@@ -311,7 +351,7 @@ const AttendancePlanner = () => {
             id="reason"
             placeholder="e.g., Medical leave"
             value={missReason}
-            onChange={(e) => setMissReason(e.target.value)}
+            onChange={(e) => updateField("missReason", e.target.value)}
             className="bg-background/50"
           />
         </div>
@@ -325,8 +365,8 @@ const AttendancePlanner = () => {
         <p className="text-xs text-muted-foreground mb-3">
           Uploading a timetable is optional. It helps improve accuracy but is not required.
         </p>
-        
-        {!timetableFile ? (
+
+        {!timetableFile && !timetableMetadata ? (
           <div className="flex items-center gap-3">
             <input
               ref={fileInputRef}
@@ -350,7 +390,9 @@ const AttendancePlanner = () => {
         ) : (
           <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/5 border border-primary/20">
             <FileText className="w-5 h-5 text-primary" />
-            <span className="text-sm text-foreground flex-1 truncate">{timetableFile.name}</span>
+            <span className="text-sm text-foreground flex-1 truncate">
+              {timetableFile ? timetableFile.name : `Previous file: ${timetableMetadata?.name}`}
+            </span>
             <Button
               type="button"
               variant="ghost"
@@ -382,21 +424,19 @@ const AttendancePlanner = () => {
             </div>
           </div>
 
-          <div className={`p-4 rounded-xl border ${
-            result.riskLevel === "safe" 
-              ? "bg-success/5 border-success/20" 
+          <div className={`p-4 rounded-xl border ${result.riskLevel === "safe"
+              ? "bg-success/5 border-success/20"
               : result.riskLevel === "warning"
-              ? "bg-warning/5 border-warning/20"
-              : "bg-destructive/5 border-destructive/20"
-          }`}>
+                ? "bg-warning/5 border-warning/20"
+                : "bg-destructive/5 border-destructive/20"
+            }`}>
             <div className="flex items-start gap-3">
-              <Calendar className={`w-5 h-5 mt-0.5 ${
-                result.riskLevel === "safe" 
-                  ? "text-success" 
+              <Calendar className={`w-5 h-5 mt-0.5 ${result.riskLevel === "safe"
+                  ? "text-success"
                   : result.riskLevel === "warning"
-                  ? "text-warning"
-                  : "text-destructive"
-              }`} />
+                    ? "text-warning"
+                    : "text-destructive"
+                }`} />
               <div>
                 <p className="font-medium text-foreground mb-1">Recovery Plan</p>
                 <p className="text-foreground/80 leading-relaxed">{result.recoveryPlan}</p>
