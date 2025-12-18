@@ -1,18 +1,28 @@
-# Welcome to your Lovable project
+# Attendify
 
-## Project info
+## Project Info
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**URL**: https://attendify.app
+
+Attendify is a comprehensive academic utility for students to calculate attendance, plan recovery, and track academic performance.
+
+## Features
+
+- **Attendance Calculator**: Calculate current attendance percentage
+- **Attendance Plan**: Plan how to recover attendance to meet requirements
+- **Marks Calculator**: detailed marks and percentage calculation
+
+## Tech Stack
+
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
 
 **Use your preferred IDE**
 
