@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Shield, AlertTriangle, AlertOctagon, Calendar, User, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Shield, AlertTriangle, AlertOctagon, Calendar, User, BookOpen, Upload, X, FileText } from "lucide-react";
 
 interface RecoveryResult {
   percentage: number;
@@ -13,27 +13,60 @@ interface RecoveryResult {
   weeksNeeded?: number;
 }
 
-const RecoveryPlanner = () => {
+const AttendancePlanner = () => {
   const [studentName, setStudentName] = useState("");
   const [subjectName, setSubjectName] = useState("");
   const [credits, setCredits] = useState<string>("");
   const [hoursPerWeek, setHoursPerWeek] = useState<string>("");
+  const [minutesPerWeek, setMinutesPerWeek] = useState<string>("");
   const [totalClasses, setTotalClasses] = useState<string>("");
   const [attendedClasses, setAttendedClasses] = useState<string>("");
   const [requiredPercentage, setRequiredPercentage] = useState<string>("75");
   const [missReason, setMissReason] = useState("");
+  const [timetableFile, setTimetableFile] = useState<File | null>(null);
   const [result, setResult] = useState<RecoveryResult | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+      if (validTypes.includes(file.type)) {
+        setTimetableFile(file);
+      } else {
+        alert('Please upload a PDF or image file (PNG, JPG)');
+      }
+    }
+  };
+
+  const removeTimetable = () => {
+    setTimetableFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     const total = parseInt(totalClasses) || 0;
     const attended = parseInt(attendedClasses) || 0;
     const required = parseFloat(requiredPercentage) || 75;
     const hours = parseInt(hoursPerWeek) || 0;
+    const minutes = parseInt(minutesPerWeek) || 0;
 
-    if (total <= 0 || attended < 0 || attended > total) {
+    if (total <= 0 || attended < 0) {
       setResult(null);
       return;
     }
+
+    if (attended > total) {
+      setResult(null);
+      return;
+    }
+
+    // Convert to total minutes for accurate calculations
+    const totalMinutesPerWeek = (hours * 60) + minutes;
+    // Assume average class duration of 50 minutes if not specified
+    const classesPerWeek = totalMinutesPerWeek > 0 ? totalMinutesPerWeek / 50 : 0;
 
     const percentage = (attended / total) * 100;
     
@@ -43,11 +76,16 @@ const RecoveryPlanner = () => {
     let isPossible = true;
 
     if (percentage < required) {
-      classesNeeded = Math.ceil((required * total - 100 * attended) / (100 - required));
-      
-      // Check if mathematically possible (required < 100)
-      if (required >= 100 || classesNeeded > 500) {
+      if (required >= 100) {
         isPossible = false;
+        classesNeeded = Infinity;
+      } else {
+        classesNeeded = Math.ceil((required * total - 100 * attended) / (100 - required));
+        
+        // Check if mathematically possible
+        if (classesNeeded > 500) {
+          isPossible = false;
+        }
       }
     }
 
@@ -61,11 +99,10 @@ const RecoveryPlanner = () => {
       riskLevel = "critical";
     }
 
-    // Calculate weeks needed based on hours per week
+    // Calculate weeks needed based on classes per week
     let weeksNeeded: number | undefined;
-    if (hours > 0 && classesNeeded > 0) {
-      // Assuming 1 hour = 1 class approximately
-      weeksNeeded = Math.ceil(classesNeeded / hours);
+    if (classesPerWeek > 0 && classesNeeded > 0 && isPossible) {
+      weeksNeeded = Math.ceil(classesNeeded / classesPerWeek);
     }
 
     // Generate recovery plan message
@@ -78,8 +115,13 @@ const RecoveryPlanner = () => {
         : `You're at exactly ${required}%. Attend all remaining classes to stay safe.`;
     } else if (isPossible) {
       recoveryPlan = `To reach ${required}% attendance, you must attend the next ${classesNeeded} class${classesNeeded > 1 ? "es" : ""} consecutively without any absence.`;
-      if (weeksNeeded) {
-        recoveryPlan += ` At ${hours} hour${hours > 1 ? "s" : ""}/week, this will take approximately ${weeksNeeded} week${weeksNeeded > 1 ? "s" : ""}.`;
+      if (weeksNeeded && totalMinutesPerWeek > 0) {
+        const hoursDisplay = Math.floor(totalMinutesPerWeek / 60);
+        const minsDisplay = totalMinutesPerWeek % 60;
+        const timeStr = hoursDisplay > 0 
+          ? `${hoursDisplay}h${minsDisplay > 0 ? ` ${minsDisplay}m` : ''}`
+          : `${minsDisplay}m`;
+        recoveryPlan += ` At ${timeStr}/week, this will take approximately ${weeksNeeded} week${weeksNeeded > 1 ? "s" : ""}.`;
       }
     } else {
       recoveryPlan = `Recovery to ${required}% is mathematically impossible with current attendance. The deficit is too large to overcome. Please consult your academic advisor for options.`;
@@ -89,11 +131,11 @@ const RecoveryPlanner = () => {
       percentage,
       riskLevel,
       recoveryPlan,
-      classesNeeded,
+      classesNeeded: isPossible ? classesNeeded : 0,
       isPossible,
       weeksNeeded,
     });
-  }, [totalClasses, attendedClasses, requiredPercentage, hoursPerWeek]);
+  }, [totalClasses, attendedClasses, requiredPercentage, hoursPerWeek, minutesPerWeek]);
 
   const getRiskIcon = () => {
     if (!result) return null;
@@ -134,7 +176,7 @@ const RecoveryPlanner = () => {
   return (
     <div className="glass-strong rounded-2xl p-6 md:p-8 animate-fade-in">
       <h2 className="text-xl font-semibold font-display mb-6 text-foreground">
-        Attendance Risk & Recovery
+        Attendance Planner
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -189,6 +231,7 @@ const RecoveryPlanner = () => {
             id="hours"
             type="number"
             min="0"
+            max="168"
             placeholder="e.g., 3"
             value={hoursPerWeek}
             onChange={(e) => setHoursPerWeek(e.target.value)}
@@ -197,11 +240,27 @@ const RecoveryPlanner = () => {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="totalRecovery" className="text-sm font-medium text-foreground">
+          <Label htmlFor="minutes" className="text-sm font-medium text-foreground">
+            Minutes/Week
+          </Label>
+          <Input
+            id="minutes"
+            type="number"
+            min="0"
+            max="59"
+            placeholder="e.g., 30"
+            value={minutesPerWeek}
+            onChange={(e) => setMinutesPerWeek(e.target.value)}
+            className="bg-background/50"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="totalPlanner" className="text-sm font-medium text-foreground">
             Total Classes
           </Label>
           <Input
-            id="totalRecovery"
+            id="totalPlanner"
             type="number"
             min="0"
             placeholder="e.g., 50"
@@ -210,13 +269,15 @@ const RecoveryPlanner = () => {
             className="bg-background/50"
           />
         </div>
+      </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         <div className="space-y-2">
-          <Label htmlFor="attendedRecovery" className="text-sm font-medium text-foreground">
-            Attended
+          <Label htmlFor="attendedPlanner" className="text-sm font-medium text-foreground">
+            Classes Attended
           </Label>
           <Input
-            id="attendedRecovery"
+            id="attendedPlanner"
             type="number"
             min="0"
             placeholder="e.g., 30"
@@ -225,15 +286,13 @@ const RecoveryPlanner = () => {
             className="bg-background/50"
           />
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="space-y-2">
-          <Label htmlFor="requiredRecovery" className="text-sm font-medium text-foreground">
-            Required Attendance %
+          <Label htmlFor="requiredPlanner" className="text-sm font-medium text-foreground">
+            Required %
           </Label>
           <Input
-            id="requiredRecovery"
+            id="requiredPlanner"
             type="number"
             min="0"
             max="100"
@@ -244,9 +303,9 @@ const RecoveryPlanner = () => {
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 col-span-2 md:col-span-1">
           <Label htmlFor="reason" className="text-sm font-medium text-foreground">
-            Reason for Missing Classes
+            Reason for Missing
           </Label>
           <Input
             id="reason"
@@ -256,6 +315,53 @@ const RecoveryPlanner = () => {
             className="bg-background/50"
           />
         </div>
+      </div>
+
+      {/* Timetable Upload Section */}
+      <div className="mb-6 p-4 rounded-xl bg-muted/30 border border-border">
+        <Label className="text-sm font-medium text-foreground flex items-center gap-2 mb-2">
+          <FileText className="w-4 h-4" /> Timetable Upload (Optional)
+        </Label>
+        <p className="text-xs text-muted-foreground mb-3">
+          Uploading a timetable is optional. It helps improve accuracy but is not required.
+        </p>
+        
+        {!timetableFile ? (
+          <div className="flex items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,image/png,image/jpeg,image/jpg"
+              onChange={handleFileChange}
+              className="hidden"
+              id="timetable-upload"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="border-dashed"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload PDF or Image
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 p-2 rounded-lg bg-primary/5 border border-primary/20">
+            <FileText className="w-5 h-5 text-primary" />
+            <span className="text-sm text-foreground flex-1 truncate">{timetableFile.name}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={removeTimetable}
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {result && (
@@ -314,8 +420,14 @@ const RecoveryPlanner = () => {
           )}
         </div>
       )}
+
+      {!result && totalClasses && attendedClasses && (
+        <p className="text-muted-foreground text-center py-4">
+          Please enter valid numbers. Classes attended cannot exceed total classes.
+        </p>
+      )}
     </div>
   );
 };
 
-export default RecoveryPlanner;
+export default AttendancePlanner;
