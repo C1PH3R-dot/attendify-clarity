@@ -1,11 +1,29 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import Header from "@/components/Header";
+import ToolSelector from "@/components/ToolSelector";
+import AttendanceCalculator from "@/components/AttendanceCalculator";
+import RecoveryPlanner from "@/components/RecoveryPlanner";
+import CGPACalculator from "@/components/CGPACalculator";
+import Footer from "@/components/Footer";
+
+type Tool = "attendance" | "recovery" | "cgpa";
 
 const Index = () => {
+  const [activeTool, setActiveTool] = useState<Tool>("attendance");
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen">
+      <div className="container max-w-4xl py-6 md:py-10">
+        <Header />
+        <ToolSelector activeTool={activeTool} onToolChange={setActiveTool} />
+        
+        <main>
+          {activeTool === "attendance" && <AttendanceCalculator />}
+          {activeTool === "recovery" && <RecoveryPlanner />}
+          {activeTool === "cgpa" && <CGPACalculator />}
+        </main>
+
+        <Footer />
       </div>
     </div>
   );
