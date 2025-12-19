@@ -6,18 +6,18 @@ const Footer = () => {
       <div className="text-center space-y-4">
         <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
           <a
-            href="mailto:support@attendify.app"
+            href="mailto:jkmicrosaas@gmail.com"
             className="flex items-center gap-2 hover:text-foreground transition-colors"
           >
             <Mail className="w-4 h-4" />
-            support@attendify.app
+            jkmicrosaas@gmail.com
           </a>
           <a
-            href="tel:+919876543210"
+            href="tel:+917736104542"
             className="flex items-center gap-2 hover:text-foreground transition-colors"
           >
             <Phone className="w-4 h-4" />
-            +91 98765 43210
+            +91 77361 04542
           </a>
         </div>
 
