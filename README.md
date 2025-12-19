@@ -2,7 +2,7 @@
 
 ## Project Info
 
-**URL**: https://attendify.app
+**URL**: https://attendify.fun
 
 Attendify is a comprehensive academic utility for students to calculate attendance, plan recovery, and track academic performance.
 
