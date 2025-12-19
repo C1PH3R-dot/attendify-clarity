@@ -5,7 +5,6 @@ import AttendanceCalculator from "@/components/AttendanceCalculator";
 import AttendancePlanner from "@/components/AttendancePlanner";
 import MarksCalculator from "@/components/MarksCalculator";
 import Footer from "@/components/Footer";
-import Chatbot from "@/components/Chatbot";
 
 type Tool = "attendance" | "planner" | "marks";
 
@@ -17,7 +16,7 @@ const Index = () => {
       <div className="container max-w-4xl py-6 md:py-10">
         <Header />
         <ToolSelector activeTool={activeTool} onToolChange={setActiveTool} />
-        
+
         <main>
           {activeTool === "attendance" && <AttendanceCalculator />}
           {activeTool === "planner" && <AttendancePlanner />}
@@ -26,8 +25,7 @@ const Index = () => {
 
         <Footer />
       </div>
-      
-      <Chatbot />
+
     </div>
   );
 };
