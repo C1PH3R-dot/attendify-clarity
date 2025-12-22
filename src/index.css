@@ -42,7 +42,7 @@
 
     --radius: 1rem;
 
-    /* Glassmorphism */
+    /* Glassmorphism - Light */
     --glass-bg: 0 0% 100% / 0.7;
     --glass-border: 0 0% 100% / 0.5;
     --glass-shadow: 220 25% 10% / 0.08;
@@ -52,21 +52,75 @@
     --gradient-accent: linear-gradient(135deg, hsl(260 60% 55%), hsl(280 60% 60%));
     --gradient-surface: linear-gradient(180deg, hsl(210 20% 98%), hsl(220 20% 95%));
   }
+
+  .dark,
+  [data-theme="dark"] {
+    --background: 220 10% 4%;
+    --foreground: 220 10% 96%;
+
+    --card: 220 14% 8%;
+    --card-foreground: 220 10% 96%;
+
+    --popover: 220 14% 8%;
+    --popover-foreground: 220 10% 96%;
+
+    --primary: 175 60% 50%;
+    --primary-foreground: 220 10% 4%;
+
+    --secondary: 220 14% 12%;
+    --secondary-foreground: 220 10% 96%;
+
+    --muted: 220 14% 12%;
+    --muted-foreground: 220 10% 65%;
+
+    --accent: 260 60% 70%;
+    --accent-foreground: 220 10% 96%;
+
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 220 10% 96%;
+
+    --success: 145 50% 45%;
+    --success-foreground: 220 10% 96%;
+
+    --warning: 38 90% 45%;
+    --warning-foreground: 220 10% 96%;
+
+    --border: 220 14% 18%;
+    --input: 220 14% 18%;
+    --ring: 175 60% 50%;
+
+    /* Glassmorphism - Dark */
+    --glass-bg: 220 14% 8% / 0.7;
+    --glass-border: 220 14% 25% / 0.4;
+    --glass-shadow: 0 0% 0% / 0.4;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(175 60% 50%), hsl(200 70% 60%));
+    --gradient-accent: linear-gradient(135deg, hsl(260 60% 70%), hsl(280 60% 75%));
+    --gradient-surface: linear-gradient(180deg, hsl(220 10% 6%), hsl(220 10% 4%));
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.15s ease, box-shadow 0.3s ease;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(180deg, hsl(210 20% 98%) 0%, hsl(220 20% 95%) 100%);
+    background: var(--gradient-surface);
+    background-attachment: fixed;
     min-height: 100vh;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: 'DM Sans', sans-serif;
   }
 }
@@ -77,17 +131,17 @@
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid hsl(var(--glass-border));
-    box-shadow: 
+    box-shadow:
       0 4px 24px hsl(var(--glass-shadow)),
       0 1px 2px hsl(var(--glass-shadow));
   }
 
   .glass-strong {
-    background: hsl(0 0% 100% / 0.85);
+    background: hsla(var(--card), 0.85);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid hsl(0 0% 100% / 0.6);
-    box-shadow: 
+    border: 1px solid hsl(var(--border) / 0.6);
+    box-shadow:
       0 8px 32px hsl(var(--glass-shadow)),
       0 2px 4px hsl(var(--glass-shadow));
   }
@@ -111,7 +165,14 @@
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
   }
 }

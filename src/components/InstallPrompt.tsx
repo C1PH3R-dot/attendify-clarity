@@ -44,7 +44,7 @@ const InstallPrompt = () => {
 
     return (
         <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:w-96 animate-in slide-in-from-bottom fade-in duration-300">
-            <div className="glass p-4 rounded-xl shadow-lg border border-white/20 flex items-center justify-between gap-4">
+            <div className="glass p-4 rounded-xl shadow-lg border border-border/30 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
                         <Download className="w-5 h-5" />

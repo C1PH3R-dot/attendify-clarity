@@ -1,8 +1,12 @@
 import { Calculator } from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 const Header = () => {
   return (
-    <header className="text-center py-8 md:py-12 animate-fade-in">
+    <header className="text-center py-8 md:py-12 animate-fade-in relative">
+      <div className="absolute top-0 right-0 pt-4 pr-4 md:pt-0 md:pr-0">
+        <ThemeToggle />
+      </div>
       <div className="flex items-center justify-center gap-3 mb-4">
         <div className="p-2 rounded-xl bg-primary/10">
           <img

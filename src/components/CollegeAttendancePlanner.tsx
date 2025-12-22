@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2, Shield, AlertTriangle, AlertOctagon, Info, Clock, CheckCircle2 } from "lucide-react";
 import useLocalStorage from "@/hooks/useLocalStorage";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type DurationMode = "hours" | "minutes" | "both";
 
@@ -171,13 +172,22 @@ const CollegeAttendancePlanner = () => {
 
         } else {
             // Recovery Case
-            // X Formula: (R*T - 100*A) / (100 - R)
-            const numer = (R * T) - (100 * A);
-            const denom = 100 - R;
             let X = 0;
+            if (isReductionOverride) {
+                // To reach R%, total misses allowed = floor((100 - R) / reductionInput)
+                // Minimum classes to attend = T - maxMissesAllowed
+                // Additional classes needed = Minimum - Already Attended
+                const maxMissesAllowed = Math.floor((100 - R) / reductionInput);
+                const minToAttend = T - maxMissesAllowed;
+                X = minToAttend - A;
+            } else {
+                // X Formula: (R*T - 100*A) / (100 - R)
+                const numer = (R * T) - (100 * A);
+                const denom = 100 - R;
 
-            if (denom <= 0) X = Infinity;
-            else X = Math.ceil(numer / denom);
+                if (denom <= 0) X = Infinity;
+                else X = Math.ceil(numer / denom);
+            }
 
             if (X < 0) X = 0;
 
@@ -263,7 +273,7 @@ const CollegeAttendancePlanner = () => {
                         const result = calculateSubjectStatus(subject);
 
                         return (
-                            <div key={subject.id} className="glass rounded-xl p-6 border border-white/20 shadow-sm relative group transition-all hover:shadow-md">
+                            <div key={subject.id} className="glass rounded-xl p-6 border border-border/30 shadow-sm relative group transition-all hover:shadow-md">
                                 {subjects.length > 1 && (
                                     <Button
                                         variant="ghost"
@@ -297,7 +307,7 @@ const CollegeAttendancePlanner = () => {
                                                 min="0"
                                                 value={subject.totalClasses}
                                                 onChange={(e) => updateSubject(subject.id, "totalClasses", e.target.value)}
-                                                className="bg-white/50 border-white/20"
+                                                className="bg-background/50 border-border/50"
                                                 placeholder="0"
                                             />
                                         </div>
@@ -308,7 +318,7 @@ const CollegeAttendancePlanner = () => {
                                                 min="0"
                                                 value={subject.attendedClasses}
                                                 onChange={(e) => updateSubject(subject.id, "attendedClasses", e.target.value)}
-                                                className={`bg-white/50 border-white/20 ${result.error ? "border-destructive/50 ring-2 ring-destructive/10" : ""}`}
+                                                className={`bg-background/50 border-border/50 ${result.error ? "border-destructive/50 ring-2 ring-destructive/10" : ""}`}
                                                 placeholder="0"
                                             />
                                             {result.error && (
@@ -325,7 +335,7 @@ const CollegeAttendancePlanner = () => {
                                                 max="100"
                                                 value={subject.requiredPercentage}
                                                 onChange={(e) => updateSubject(subject.id, "requiredPercentage", e.target.value)}
-                                                className="bg-white/50 border-white/20"
+                                                className="bg-background/50 border-border/50"
                                                 placeholder="75"
                                             />
                                         </div>
@@ -333,20 +343,20 @@ const CollegeAttendancePlanner = () => {
 
                                     {/* Secondary Metrics */}
                                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pt-2">
-                                        <div className="p-4 rounded-xl bg-secondary/20 border border-white/10 flex flex-col justify-between group/duration">
+                                        <div className="p-4 rounded-xl bg-secondary/20 border border-border/20 flex flex-col justify-between group/duration">
                                             <div className="flex items-center justify-between mb-3">
                                                 <div className="flex items-center gap-2 text-sm font-medium text-foreground/80">
                                                     <Clock className="w-4 h-4" />
                                                     Class Duration *
                                                 </div>
-                                                <div className="flex bg-white/20 rounded-lg p-1 gap-1">
+                                                <div className="flex bg-secondary/50 rounded-lg p-1 gap-1">
                                                     {(['hours', 'minutes', 'both'] as DurationMode[]).map((mode) => (
                                                         <button
                                                             key={mode}
                                                             onClick={() => updateSubject(subject.id, "durationMode", mode)}
                                                             className={`text-[10px] px-2 py-1 rounded-md uppercase font-bold tracking-wider transition-all ${subject.durationMode === mode
-                                                                    ? 'bg-white shadow-sm text-primary'
-                                                                    : 'hover:bg-white/10 text-muted-foreground'
+                                                                ? 'bg-background shadow-sm text-primary'
+                                                                : 'hover:bg-secondary/40 text-muted-foreground'
                                                                 }`}
                                                         >
                                                             {mode}
@@ -364,7 +374,7 @@ const CollegeAttendancePlanner = () => {
                                                             placeholder="0"
                                                             value={subject.durationHours}
                                                             onChange={(e) => updateSubject(subject.id, "durationHours", e.target.value)}
-                                                            className="bg-white/60 h-9 transition-all focus:bg-white"
+                                                            className="bg-background/60 h-9 transition-all focus:bg-background"
                                                         />
                                                         <span className="text-[10px] text-muted-foreground ml-1">Hours</span>
                                                     </div>
@@ -378,7 +388,7 @@ const CollegeAttendancePlanner = () => {
                                                             placeholder="0"
                                                             value={subject.durationMinutes}
                                                             onChange={(e) => updateSubject(subject.id, "durationMinutes", e.target.value)}
-                                                            className="bg-white/60 h-9 transition-all focus:bg-white"
+                                                            className="bg-background/60 h-9 transition-all focus:bg-background"
                                                         />
                                                         <span className="text-[10px] text-muted-foreground ml-1">Minutes</span>
                                                     </div>
@@ -386,7 +396,7 @@ const CollegeAttendancePlanner = () => {
                                             </div>
                                         </div>
 
-                                        <div className="p-4 rounded-xl bg-secondary/20 border border-white/10 grid grid-cols-2 gap-4">
+                                        <div className="p-4 rounded-xl bg-secondary/20 border border-border/20 grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label className="text-xs font-medium text-foreground/70">Subject Credits *</Label>
                                                 <Input
@@ -394,21 +404,31 @@ const CollegeAttendancePlanner = () => {
                                                     min="0"
                                                     value={subject.credits}
                                                     onChange={(e) => updateSubject(subject.id, "credits", e.target.value)}
-                                                    className="bg-white/60 h-9"
+                                                    className="bg-background/60 h-9"
                                                     placeholder="e.g. 4"
                                                 />
                                             </div>
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-1.5">
                                                     <Label className="text-xs font-medium text-foreground/70 truncate">Reduction %</Label>
-                                                    <Tooltip>
-                                                        <TooltipTrigger>
-                                                            <Info className="w-3 h-3 text-muted-foreground" />
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p className="max-w-[200px] text-xs">Optional: Explicit percentage drop if ONE class is missed. Defaults to standard math.</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <button
+                                                                type="button"
+                                                                className="inline-flex items-center justify-center rounded-sm hover:bg-muted/50 p-0.5 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                                                aria-label="Reduction Percentage Information"
+                                                            >
+                                                                <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                                                            </button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent side="top" className="w-72 p-3 text-xs leading-relaxed" align="start">
+                                                            <p>
+                                                                <strong>Reduction %</strong> indicates how much your overall attendance percentage will decrease if you miss one class of this subject.
+                                                                This value varies by college and subject structure.
+                                                                If you do not enter a value, the system will use a default internal calculation.
+                                                            </p>
+                                                        </PopoverContent>
+                                                    </Popover>
                                                 </div>
                                                 <Input
                                                     type="number"
@@ -416,8 +436,8 @@ const CollegeAttendancePlanner = () => {
                                                     min="0"
                                                     value={subject.reductionPercentage}
                                                     onChange={(e) => updateSubject(subject.id, "reductionPercentage", e.target.value)}
-                                                    className={`bg-white/60 h-9 ${result.isReductionOverride ? 'border-primary/30 ring-1 ring-primary/10' : ''}`}
-                                                    placeholder="Auto"
+                                                    className={`bg-background/60 h-9 ${result.isReductionOverride ? 'border-primary/30 ring-1 ring-primary/10' : ''}`}
+                                                    placeholder="Optional"
                                                 />
                                             </div>
                                         </div>
@@ -437,10 +457,10 @@ const CollegeAttendancePlanner = () => {
                                             </div>
 
                                             <div className={`p-4 rounded-xl border flex items-start gap-4 transition-all duration-300 ${result.riskLevel === 'safe' ? 'bg-success/5 border-success/20' :
-                                                    result.riskLevel === 'caution' ? 'bg-warning/5 border-warning/20' :
-                                                        'bg-destructive/5 border-destructive/20'
+                                                result.riskLevel === 'caution' ? 'bg-warning/5 border-warning/20' :
+                                                    'bg-destructive/5 border-destructive/20'
                                                 }`}>
-                                                <div className="mt-1 shadow-sm rounded-full bg-white/50 p-1">
+                                                <div className="mt-1 shadow-sm rounded-full bg-background/50 p-1">
                                                     {result.riskLevel === 'safe' && <Shield className="w-5 h-5 text-success" />}
                                                     {result.riskLevel === 'caution' && <AlertTriangle className="w-5 h-5 text-warning" />}
                                                     {result.riskLevel === 'critical' && <AlertOctagon className="w-5 h-5 text-destructive" />}
@@ -451,8 +471,8 @@ const CollegeAttendancePlanner = () => {
                                                             {result.currentPercentage.toFixed(2)}%
                                                         </h4>
                                                         <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider shadow-sm ${result.riskLevel === 'safe' ? 'bg-success/20 text-success-foreground' :
-                                                                result.riskLevel === 'caution' ? 'bg-warning/20 text-warning-foreground' :
-                                                                    'bg-destructive/20 text-destructive-foreground'
+                                                            result.riskLevel === 'caution' ? 'bg-warning/20 text-warning-foreground' :
+                                                                'bg-destructive/20 text-destructive-foreground'
                                                             }`}>
                                                             {result.badgeText}
                                                         </span>
@@ -465,7 +485,7 @@ const CollegeAttendancePlanner = () => {
                                         </div>
                                     ) : (
                                         !result.error && (
-                                            <div className="py-4 text-center text-sm text-muted-foreground/60 italic border-t border-dashed border-white/20 mt-2">
+                                            <div className="py-4 text-center text-sm text-muted-foreground/60 italic border-t border-dashed border-border/20 mt-2">
                                                 Fill all mandatory fields (*) to view analysis.
                                             </div>
                                         )
